@@ -1,0 +1,35 @@
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+license = "Apache-2.0"
+authors = ["Richard Zak <richard.j.zak@gmail.com>"]
+
+[workspace.dependencies]
+# Internal dependencies
+cattle-common = { path = "cattle-common", version = "0.0.1" }
+
+# External dependencies
+anyhow = { version = "1.0", default-features = false }
+axum = { version = "0.7.5", default-features = false }
+clap = { version = "4.5", default-features = false }
+clap_complete = { version = "4.5", default-features = false }
+hex = { version = "0.4.3", default-features = false }
+http = { version = "1.1.0", default-features = false }
+http-body-util = { version = "0.1.2", default-features = false }
+hyper = { version = "1.4.0", default-features = false }
+reqwest = { version = "0.12.5", default-features = false }
+serde = { version = "1.0", default-features = false }
+tokio = { version = "1.38", default-features = false }
+toml = { version = "0.8.14", default-features = false }
+uuid = { version = "1.9", default-features = false }
+vergen = { version = "9.0.0", default-features = false }
+vergen-gitcl = { version = "1.0.0", default-features = false }
+
+[workspace]
+resolver = "2"
+members = ["cattle-common", "cattle-herder", "cattle-monitor"]
+
+[profile.release]
+codegen-units = 1
+lto = true
+strip = "symbols"

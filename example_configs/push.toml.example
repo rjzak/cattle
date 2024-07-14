@@ -1,0 +1,4 @@
+[Push]
+server = "localhost"
+port = 6543
+interval_seconds = 10

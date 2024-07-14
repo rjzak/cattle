@@ -1,0 +1,3 @@
+[Poll]
+cattle = ["localhost"]
+interval_seconds = 10

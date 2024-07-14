@@ -8,3 +8,7 @@ authors.workspace = true
 [dependencies]
 serde = { workspace = true, features = ["derive", "std"] }
 uuid = { workspace = true, features = ["serde", "v4"] }
+
+[dev-dependencies]
+toml = { workspace = true, features = ["default", "parse"] }
+rstest = { workspace = true }

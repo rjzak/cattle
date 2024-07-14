@@ -13,6 +13,8 @@ cattle-common = { workspace = true }
 # External dependencies
 anyhow = { workspace = true, features = ["std"] }
 clap = { workspace = true, features = ["color", "derive", "env", "help", "std", "suggestions"] }
+p384 = { workspace = true, features = ["ecdsa", "std", "pem"] }
+rand = { workspace = true, features = ["std", "std_rng"] }
 serde = { workspace = true, features = ["derive", "std"] }
 sysinfo = { workspace = true, features = ["default", "multithread"] }
 toml = { workspace = true, features = ["default", "parse"] }

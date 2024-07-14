@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use clap::Parser;
+use p384::{PublicKey, SecretKey};
 use serde::{Deserialize, Serialize};
 use sysinfo::{Disks, System};
 use uuid::Uuid;
@@ -45,6 +46,12 @@ pub struct CattleState {
 
     /// Uuid which uniquely identifies this system to the monitor.
     pub id: Uuid,
+
+    /// Public key
+    pub pkey: PublicKey,
+
+    /// Secret key
+    skey: SecretKey,
 }
 
 impl Default for CattleState {
@@ -63,9 +70,15 @@ impl Default for CattleState {
             uuid
         };
 
+        let mut rand = rand::thread_rng();
+        let skey = SecretKey::random(&mut rand);
+        let pkey = skey.public_key();
+
         CattleState {
             sys: Arc::new(RwLock::new(System::new_all())),
             id: uuid,
+            pkey,
+            skey,
         }
     }
 }
@@ -119,6 +132,8 @@ fn main() -> Result<ExitCode> {
 
     let state = CattleState::default();
     state.update();
+
+    println!("{:?}", state.initial_info().unwrap());
 
     Ok(ExitCode::SUCCESS)
 }

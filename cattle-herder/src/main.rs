@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use sysinfo::{Disks, System};
 use uuid::Uuid;
 
-pub const ID_FILE: &str = "/var/cache/cattle-herder/id.txt";
+pub const ID_FILE: &str = "/var/cache/cattle-herder/id.bin";
 
 pub const VERSION: &str = concat!(
     "v",
@@ -74,8 +74,16 @@ impl Default for CattleState {
         let skey = SecretKey::random(&mut rand);
         let pkey = skey.public_key();
 
+        let mut system = System::new_all();
+        system.refresh_all();
+        system.refresh_cpu();
+
+        // Wait a bit because CPU usage is based on diff.
+        std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+        system.refresh_cpu();
+
         CattleState {
-            sys: Arc::new(RwLock::new(System::new_all())),
+            sys: Arc::new(RwLock::new(system)),
             id: uuid,
             pkey,
             skey,
@@ -84,15 +92,23 @@ impl Default for CattleState {
 }
 
 impl CattleState {
-    fn update(&self) {
+    fn update(&self) -> Result<()> {
         if let Ok(mut sys) = self.sys.write() {
             sys.refresh_all();
             sys.refresh_cpu();
+
+            // Wait a bit because CPU usage is based on diff.
+            std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+            sys.refresh_cpu();
+        } else {
+            bail!("Failed to get read-write lock on System");
         }
+
+        Ok(())
     }
 
     pub fn initial_info(&self) -> Result<CattleInitialConnect> {
-        self.update();
+        self.update()?;
 
         if let Ok(sys) = self.sys.read() {
             let disks = Disks::new_with_refreshed_list();
@@ -131,9 +147,20 @@ fn main() -> Result<ExitCode> {
     }
 
     let state = CattleState::default();
-    state.update();
-
     println!("{:?}", state.initial_info().unwrap());
 
     Ok(ExitCode::SUCCESS)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::CattleState;
+
+    #[test]
+    #[ignore]
+    fn state() {
+        let state = CattleState::default();
+        state.update().expect("failed to update system information");
+        println!("{:?}", state.initial_info().unwrap());
+    }
 }

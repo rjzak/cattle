@@ -1,10 +1,17 @@
-use std::path::PathBuf;
+use cattle_common::{CattleInitialConnect, Mode};
+
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::sync::{Arc, RwLock};
+use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
-use cattle_common::Mode;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
+use sysinfo::{Disks, System};
+use uuid::Uuid;
+
+pub const ID_FILE: &str = "/var/cache/cattle-herder/id.txt";
 
 pub const VERSION: &str = concat!(
     "v",
@@ -31,6 +38,72 @@ pub struct CattleConfig {
     pub herd_config: cattle_common::Config,
 }
 
+#[derive(Debug)]
+pub struct CattleState {
+    /// Handle on the `sysconfig::System` object for updates without a mutable reference to this object
+    pub sys: Arc<RwLock<System>>,
+
+    /// Uuid which uniquely identifies this system to the monitor.
+    pub id: Uuid,
+}
+
+impl Default for CattleState {
+    fn default() -> Self {
+        let uuid_path = Path::new(ID_FILE);
+
+        let uuid = if uuid_path.exists() {
+            let uuid = std::fs::read(ID_FILE)
+                .unwrap_or_else(|_| panic!("failed to read ID file {ID_FILE}"));
+            Uuid::from_slice(&uuid)
+                .unwrap_or_else(|_| panic!("failed to parse ID {uuid:?} from file {ID_FILE}"))
+        } else {
+            let uuid = Uuid::new_v4();
+            std::fs::write(ID_FILE, uuid.as_bytes())
+                .unwrap_or_else(|_| panic!("failed to save UUID to {ID_FILE}"));
+            uuid
+        };
+
+        CattleState {
+            sys: Arc::new(RwLock::new(System::new_all())),
+            id: uuid,
+        }
+    }
+}
+
+impl CattleState {
+    fn update(&self) {
+        if let Ok(mut sys) = self.sys.write() {
+            sys.refresh_all();
+            sys.refresh_cpu();
+        }
+    }
+
+    pub fn initial_info(&self) -> Result<CattleInitialConnect> {
+        self.update();
+
+        if let Ok(sys) = self.sys.read() {
+            let disks = Disks::new_with_refreshed_list();
+            let disk_bytes = disks.iter().map(|d| d.total_space()).sum();
+
+            Ok(CattleInitialConnect {
+                name: System::name().unwrap_or_default(),
+                id: self.id,
+                os_name: "".to_string(),
+                os_version: System::os_version().unwrap_or_default(),
+                os_version_long: System::long_os_version().unwrap_or_default(),
+                ram_bytes: sys.total_memory(),
+                disk_bytes,
+                cpu_count: sys.cpus().len(),
+                cpu_brand: sys.global_cpu_info().brand().to_string(),
+                cpu_name: sys.global_cpu_info().name().to_string(),
+                uptime: Duration::from_secs(System::uptime()),
+            })
+        } else {
+            bail!("Failed to get a lock on system information handle")
+        }
+    }
+}
+
 fn main() -> Result<ExitCode> {
     let args = Args::parse();
     let config = std::fs::read_to_string(&args.config)
@@ -43,6 +116,9 @@ fn main() -> Result<ExitCode> {
     if matches!(config.herd_config.mode, Mode::Poll(_)) {
         bail!("Error: this is the Cattle application, Poll mode not acceptable.");
     }
+
+    let state = CattleState::default();
+    state.update();
 
     Ok(ExitCode::SUCCESS)
 }

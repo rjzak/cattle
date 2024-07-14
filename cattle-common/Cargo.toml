@@ -7,3 +7,4 @@ authors.workspace = true
 
 [dependencies]
 serde = { workspace = true, features = ["derive", "std"] }
+uuid = { workspace = true, features = ["serde", "v4"] }

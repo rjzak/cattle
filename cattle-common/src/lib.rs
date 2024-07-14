@@ -1,4 +1,7 @@
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 /// Configuration file
 #[derive(Debug, Deserialize, Serialize)]
@@ -43,4 +46,50 @@ pub struct HerderPolls {
 
     /// Interval in seconds for polling for data
     pub interval_seconds: u32,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Message(MessageType);
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum MessageType {
+    RequestUpdate,
+    SendUpdate,
+    SendInitialInfo(CattleInitialConnect),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct CattleInitialConnect {
+    /// Host name of the system
+    pub name: String,
+
+    /// Unchanging ID of the system
+    pub id: Uuid,
+
+    /// Operating System name
+    pub os_name: String,
+
+    /// Operating System version
+    pub os_version: String,
+
+    /// More detailed Operating System version
+    pub os_version_long: String,
+
+    /// Total RAM
+    pub ram_bytes: u64,
+
+    /// Total disk capacity
+    pub disk_bytes: u64,
+
+    /// Number of processors
+    pub cpu_count: usize,
+
+    /// CPU info
+    pub cpu_brand: String,
+
+    /// Name of the CPU
+    pub cpu_name: String,
+
+    /// OS-reported system uptime
+    pub uptime: Duration,
 }

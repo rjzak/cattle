@@ -1,5 +1,6 @@
-use cattle_common::{CattleInitialConnect, Mode};
+use cattle_common::{CattleInitialConnect, CattleUpdate, Mode};
 
+use std::ops::Add;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::{Arc, RwLock};
@@ -9,7 +10,7 @@ use anyhow::{bail, Context, Result};
 use clap::Parser;
 use p384::{PublicKey, SecretKey};
 use serde::{Deserialize, Serialize};
-use sysinfo::{Disks, System};
+use sysinfo::{Disks, Pid, System};
 use uuid::Uuid;
 
 pub const ID_FILE: &str = "/var/cache/cattle-herder/id.bin";
@@ -92,7 +93,7 @@ impl Default for CattleState {
 }
 
 impl CattleState {
-    fn update(&self) -> Result<()> {
+    fn system_update(&self) -> Result<()> {
         if let Ok(mut sys) = self.sys.write() {
             sys.refresh_all();
             sys.refresh_cpu();
@@ -108,7 +109,7 @@ impl CattleState {
     }
 
     pub fn initial_info(&self) -> Result<CattleInitialConnect> {
-        self.update()?;
+        self.system_update()?;
 
         if let Ok(sys) = self.sys.read() {
             let disks = Disks::new_with_refreshed_list();
@@ -117,15 +118,53 @@ impl CattleState {
             Ok(CattleInitialConnect {
                 name: System::name().unwrap_or_default(),
                 id: self.id,
-                os_name: "".to_string(),
                 os_version: System::os_version().unwrap_or_default(),
                 os_version_long: System::long_os_version().unwrap_or_default(),
                 ram_bytes: sys.total_memory(),
                 disk_bytes,
-                cpu_count: sys.cpus().len(),
+                cpu_count: sys.cpus().len() as u64,
                 cpu_brand: sys.global_cpu_info().brand().to_string(),
                 cpu_name: sys.global_cpu_info().name().to_string(),
                 uptime: Duration::from_secs(System::uptime()),
+            })
+        } else {
+            bail!("Failed to get a lock on system information handle")
+        }
+    }
+
+    pub fn periodic_update(&self) -> Result<CattleUpdate> {
+        self.system_update()?;
+
+        if let Ok(sys) = self.sys.read() {
+            let disks = Disks::new_with_refreshed_list();
+            let available_bytes = disks.iter().map(|d| d.available_space()).sum();
+
+            let mut biggest_process_pid = Pid::from_u32(0);
+            let mut biggest_process_usage = 0f32;
+            for (_, process) in sys.processes().iter() {
+                if process.cpu_usage() > biggest_process_usage {
+                    biggest_process_pid = process.pid();
+                    biggest_process_usage = process.cpu_usage();
+                }
+            }
+
+            let biggest_process_owner =
+                sys.process(biggest_process_pid).unwrap().user_id().unwrap();
+            let biggest_process_name = sys.process(biggest_process_pid).unwrap().name().to_string();
+            let biggest_process_owner = users::get_user_by_uid(biggest_process_owner.add(0))
+                .unwrap()
+                .name()
+                .to_str()
+                .unwrap()
+                .to_string();
+
+            Ok(CattleUpdate {
+                cpu_utilization: sys.global_cpu_info().cpu_usage(),
+                available_memory_bytes: sys.available_memory(),
+                available_disk_bytes: available_bytes,
+                running_processes: sys.processes().len() as u64,
+                most_intense_process_name: biggest_process_name,
+                most_intense_process_owner: biggest_process_owner,
             })
         } else {
             bail!("Failed to get a lock on system information handle")
@@ -160,7 +199,12 @@ mod tests {
     #[ignore]
     fn state() {
         let state = CattleState::default();
-        state.update().expect("failed to update system information");
+        state
+            .system_update()
+            .expect("failed to update system information");
         println!("{:?}", state.initial_info().unwrap());
+
+        let update = state.periodic_update().unwrap();
+        println!("{:?}", update);
     }
 }

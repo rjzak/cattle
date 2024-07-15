@@ -85,7 +85,7 @@ pub struct Message(MessageType);
 pub enum MessageType {
     SendPublicKey(Vec<u8>),
     RequestUpdate,
-    SendUpdate,
+    SendUpdate(CattleUpdate),
     SendInitialInfo(CattleInitialConnect),
 }
 
@@ -96,9 +96,6 @@ pub struct CattleInitialConnect {
 
     /// Unchanging ID of the system
     pub id: Uuid,
-
-    /// Operating System name
-    pub os_name: String,
 
     /// Operating System version
     pub os_version: String,
@@ -113,7 +110,7 @@ pub struct CattleInitialConnect {
     pub disk_bytes: u64,
 
     /// Number of processors
-    pub cpu_count: usize,
+    pub cpu_count: u64,
 
     /// CPU info
     pub cpu_brand: String,
@@ -123,6 +120,27 @@ pub struct CattleInitialConnect {
 
     /// OS-reported system uptime
     pub uptime: Duration,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct CattleUpdate {
+    /// CPU utilization
+    pub cpu_utilization: f32,
+
+    /// Unused RAM
+    pub available_memory_bytes: u64,
+
+    /// Unused disk space
+    pub available_disk_bytes: u64,
+
+    /// Number of processes running
+    pub running_processes: u64,
+
+    /// Process using most of the CPU
+    pub most_intense_process_name: String,
+
+    /// Username of the owner of the process using the CPU the most
+    pub most_intense_process_owner: String,
 }
 
 #[cfg(test)]

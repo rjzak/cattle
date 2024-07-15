@@ -18,6 +18,7 @@ rand = { workspace = true, features = ["std", "std_rng"] }
 serde = { workspace = true, features = ["derive", "std"] }
 sysinfo = { workspace = true, features = ["default", "multithread"] }
 toml = { workspace = true, features = ["default", "parse"] }
+users = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 
 [build-dependencies]

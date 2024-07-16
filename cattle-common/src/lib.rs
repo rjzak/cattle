@@ -91,8 +91,11 @@ pub enum MessageType {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CattleInitialConnect {
-    /// Host name of the system
-    pub name: String,
+    /// OS name
+    pub os_name: String,
+
+    /// Hostname of the system
+    pub hostname: String,
 
     /// Unchanging ID of the system
     pub id: Uuid,
@@ -145,8 +148,9 @@ pub struct CattleUpdate {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use rstest::rstest;
+
+    use super::*;
 
     #[rstest]
     #[case::poll(

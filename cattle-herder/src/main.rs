@@ -1,5 +1,3 @@
-use cattle_common::{CattleInitialConnect, CattleUpdate, Mode};
-
 use std::ops::Add;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -13,7 +11,14 @@ use serde::{Deserialize, Serialize};
 use sysinfo::{Disks, Pid, System};
 use uuid::Uuid;
 
+use cattle_common::{CattleInitialConnect, CattleUpdate, Mode};
+
+#[cfg(target_os = "macos")]
+pub const ID_FILE: &str = "/Library/Preferences/Cattle/id.bin";
+#[cfg(all(target_family = "unix", not(target_os = "macos")))]
 pub const ID_FILE: &str = "/var/cache/cattle-herder/id.bin";
+#[cfg(target_os = "windows")]
+pub const ID_FILE: &str = "C:\\cattle-herder\\id.bin";
 
 pub const VERSION: &str = concat!(
     "v",
@@ -116,7 +121,8 @@ impl CattleState {
             let disk_bytes = disks.iter().map(|d| d.total_space()).sum();
 
             Ok(CattleInitialConnect {
-                name: System::name().unwrap_or_default(),
+                os_name: System::name().unwrap_or_default(),
+                hostname: System::host_name().unwrap(),
                 id: self.id,
                 os_version: System::os_version().unwrap_or_default(),
                 os_version_long: System::long_os_version().unwrap_or_default(),

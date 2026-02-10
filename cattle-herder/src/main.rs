@@ -20,14 +20,7 @@ pub const ID_FILE: &str = "/var/cache/cattle-herder/id.bin";
 #[cfg(target_os = "windows")]
 pub const ID_FILE: &str = "C:\\cattle-herder\\id.bin";
 
-pub const VERSION: &str = concat!(
-    "v",
-    env!("CARGO_PKG_VERSION"),
-    "-",
-    env!("VERGEN_GIT_DESCRIBE"),
-    " ",
-    env!("VERGEN_BUILD_DATE")
-);
+pub const VERSION: &str = concat!(env!("CATTLE_VERSION"), " ", env!("CATTLE_BUILD_DATE"));
 
 /// Cattle Herder
 ///
@@ -82,11 +75,11 @@ impl Default for CattleState {
 
         let mut system = System::new_all();
         system.refresh_all();
-        system.refresh_cpu();
+        system.refresh_cpu_all();
 
         // Wait a bit because CPU usage is based on diff.
         std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
-        system.refresh_cpu();
+        system.refresh_cpu_all();
 
         CattleState {
             sys: Arc::new(RwLock::new(system)),
@@ -101,11 +94,11 @@ impl CattleState {
     fn system_update(&self) -> Result<()> {
         if let Ok(mut sys) = self.sys.write() {
             sys.refresh_all();
-            sys.refresh_cpu();
+            sys.refresh_cpu_all();
 
             // Wait a bit because CPU usage is based on diff.
             std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
-            sys.refresh_cpu();
+            sys.refresh_cpu_all();
         } else {
             bail!("Failed to get read-write lock on System");
         }
@@ -129,8 +122,8 @@ impl CattleState {
                 ram_bytes: sys.total_memory(),
                 disk_bytes,
                 cpu_count: sys.cpus().len() as u64,
-                cpu_brand: sys.global_cpu_info().brand().to_string(),
-                cpu_name: sys.global_cpu_info().name().to_string(),
+                cpu_brand: sys.cpus()[0].brand().to_string(),
+                cpu_name: sys.cpus()[0].name().to_string(),
                 uptime: Duration::from_secs(System::uptime()),
             })
         } else {
@@ -156,7 +149,7 @@ impl CattleState {
 
             let biggest_process_owner =
                 sys.process(biggest_process_pid).unwrap().user_id().unwrap();
-            let biggest_process_name = sys.process(biggest_process_pid).unwrap().name().to_string();
+            let biggest_process_name = sys.process(biggest_process_pid).unwrap().name();
             let biggest_process_owner = users::get_user_by_uid(biggest_process_owner.add(0))
                 .unwrap()
                 .name()
@@ -165,11 +158,11 @@ impl CattleState {
                 .to_string();
 
             Ok(CattleUpdate {
-                cpu_utilization: sys.global_cpu_info().cpu_usage(),
+                cpu_utilization: sys.global_cpu_usage(),
                 available_memory_bytes: sys.available_memory(),
                 available_disk_bytes: available_bytes,
                 running_processes: sys.processes().len() as u64,
-                most_intense_process_name: biggest_process_name,
+                most_intense_process_name: biggest_process_name.to_str().unwrap().to_string(),
                 most_intense_process_owner: biggest_process_owner,
             })
         } else {

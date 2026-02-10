@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
+rust-version.workspace = true
 build = "../build.rs"
 
 [dependencies]
@@ -17,5 +18,4 @@ serde = { workspace = true, features = ["derive", "std"] }
 toml = { workspace = true, features = ["default", "parse"] }
 
 [build-dependencies]
-vergen = { workspace = true, features = ["build"] }
-vergen-gitcl = { workspace = true, features = ["build"] }
+chrono = { workspace = true, features = ["now"] }

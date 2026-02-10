@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
+rust-version.workspace = true
 build = "../build.rs"
 
 [dependencies]
@@ -22,5 +23,4 @@ users = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 
 [build-dependencies]
-vergen = { workspace = true, features = ["build"] }
-vergen-gitcl = { workspace = true, features = ["build"] }
+chrono = { workspace = true, features = ["now"] }

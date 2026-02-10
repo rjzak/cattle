@@ -6,14 +6,7 @@ use cattle_common::Mode;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: &str = concat!(
-    "v",
-    env!("CARGO_PKG_VERSION"),
-    "-",
-    env!("VERGEN_GIT_DESCRIBE"),
-    " ",
-    env!("VERGEN_BUILD_DATE")
-);
+pub const VERSION: &str = concat!(env!("CATTLE_VERSION"), " ", env!("CATTLE_BUILD_DATE"));
 
 /// Cattle Monitor
 ///

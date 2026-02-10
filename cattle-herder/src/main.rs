@@ -69,7 +69,7 @@ impl Default for CattleState {
             uuid
         };
 
-        let mut rand = rand::thread_rng();
+        let mut rand = p384::ecdsa::signature::rand_core::OsRng;
         let skey = SecretKey::random(&mut rand);
         let pkey = skey.public_key();
 

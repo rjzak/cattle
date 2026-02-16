@@ -27,7 +27,7 @@ sysinfo = { version = "0.38.2", default-features = false }
 tokio = { version = "1.49.0", default-features = false }
 toml = { version = "1.0.1", default-features = false }
 users = { version = "0.11.0", default-features = false }
-uuid = { version = "1.20.0", default-features = false }
+uuid = { version = "1.21.0", default-features = false }
 
 [workspace]
 resolver = "2"

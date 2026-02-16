@@ -23,7 +23,7 @@ p384 = { version = "0.13.1", default-features = false }
 reqwest = { version = "0.13.2", default-features = false }
 rstest = { version = "0.26.1", default-features = false }
 serde = { version = "1.0", default-features = false }
-sysinfo = { version = "0.38.1", default-features = false }
+sysinfo = { version = "0.38.2", default-features = false }
 tokio = { version = "1.49.0", default-features = false }
 toml = { version = "1.0.1", default-features = false }
 users = { version = "0.11.0", default-features = false }
